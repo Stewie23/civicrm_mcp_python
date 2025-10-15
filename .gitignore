@@ -26,6 +26,7 @@ Thumbs.db
 *.log
 .env_prod
 .env_test
+env_*
 
 # IDE / editor settings
 .vscode/
