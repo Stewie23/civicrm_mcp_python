@@ -3,6 +3,7 @@ import os
 import json
 import httpx
 import logging
+import tempfile
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Dict, Any
 
@@ -10,23 +11,29 @@ from typing import Optional, Dict, Any
 def _setup_file_logger() -> logging.Logger:
     """
     Richtet einen RotatingFileHandler ein.
-    Pfad per ENV LOG_FILE überschreibbar (Default: /tmp/civicrm_mcp.log).
+    Pfad per ENV LOG_FILE überschreibbar.
+    Default: system temp dir (/tmp auf Linux, %TEMP% auf Windows).
+    Erstellt Verzeichnisse bei Bedarf automatisch.
     """
-    log_path = os.getenv("LOG_FILE", "/tmp/civicrm_mcp.log")
+    default_log_path = os.path.join(tempfile.gettempdir(), "civicrm_mcp.log")
+    log_path = os.getenv("LOG_FILE", default_log_path)
+
+    # make sure directory exists
+    log_dir = os.path.dirname(log_path)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+
     logger = logging.getLogger("civicrm-mcp")
     if logger.handlers:
-        return logger  # schon konfiguriert
+        return logger  # already configured
 
     logger.setLevel(os.getenv("LOG_LEVEL", "DEBUG").upper())
 
-    # ~5 MB pro Datei, 3 Backups
     handler = RotatingFileHandler(log_path, maxBytes=5 * 1024 * 1024, backupCount=3)
-    fmt = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-    )
+    fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     handler.setFormatter(fmt)
     logger.addHandler(handler)
-    logger.propagate = False  # nichts an Root-Logger weiterreichen
+    logger.propagate = False
     return logger
 
 _logger = _setup_file_logger()
