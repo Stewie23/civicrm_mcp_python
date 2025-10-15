@@ -1,0 +1,57 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+env/
+.venv/
+.envrc
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Environment and config files
+.env
+*.env
+.env.*
+.env.local
+*.pem
+*.key
+*.crt
+*.log
+.env_prod
+.env_test
+
+# IDE / editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Byte-compiled / packaging
+build/
+dist/
+*.egg-info/
+
+# Cache
+.cache/
+.mypy_cache/
+pytest_cache/
+
+# Misc
+*.sqlite3
+
+# Archived or old material
+_Archiv/
+
+# Local AI / Claude Desktop config
+claude_desktop_config.json
+log_file*
+log_file.txt
+log_file_prod.txt
+log_file_test.txt
