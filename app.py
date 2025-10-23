@@ -111,9 +111,38 @@ async def civicrm_get(input: GetInput, ctx: Context = None) -> CallToolResult:
     return as_text_output(out)
 
 @app.tool()
-async def civicrm_update(input: UpdateInput, ctx: Context = None) -> CallToolResult:
-    """Update by id"""
-    # APIv4 erwartet 'values' und 'where' Parameter
+async def civicrm_update_request(input: UpdateInput, ctx: Context = None) -> CallToolResult:
+    """Request update - shows current values and proposed changes, asks for confirmation"""
+    
+    # Get current record first
+    get_payload = {"where": [["id", "=", input.id]], "limit": 1}
+    async with CiviCRMClient() as cli:
+        current = await cli.call(input.entity, "get", get_payload)
+    
+    current_values = current.get("values", [{}])[0] if current.get("values") else {}
+    
+    # Show what will change
+    changes = {}
+    for key, new_value in input.record.items():
+        old_value = current_values.get(key)
+        if old_value != new_value:
+            changes[key] = {"old": old_value, "new": new_value}
+    
+    confirmation_msg = {
+        "status": "confirmation_required",
+        "entity": input.entity,
+        "id": input.id,
+        "current_record": current_values,
+        "proposed_changes": changes,
+        "message": f"⚠️ Ready to update {input.entity} ID {input.id}. Use civicrm_update_confirmed to proceed."
+    }
+    
+    return as_text_output(confirmation_msg)
+
+
+@app.tool()
+async def civicrm_update_confirmed(input: UpdateInput, ctx: Context = None) -> CallToolResult:
+    """Execute confirmed update - ONLY use after user explicitly confirms"""
     payload = {
         "values": dict(input.record),
         "where": [["id", "=", input.id]]
@@ -123,8 +152,28 @@ async def civicrm_update(input: UpdateInput, ctx: Context = None) -> CallToolRes
     return as_text_output(out)
 
 @app.tool()
-async def civicrm_delete(input: DeleteInput, ctx: Context = None) -> CallToolResult:
-    """Delete by id"""
+async def civicrm_delete_request(input: DeleteInput, ctx: Context = None) -> CallToolResult:
+    """Request deletion - shows what will be deleted and asks for confirmation"""
+    
+    # Get the record details first
+    get_payload = {"where": [["id", "=", input.id]], "limit": 1}
+    async with CiviCRMClient() as cli:
+        record = await cli.call(input.entity, "get", get_payload)
+    
+    confirmation_msg = {
+        "status": "confirmation_required",
+        "entity": input.entity,
+        "id": input.id,
+        "record": record.get("values", []),
+        "message": f"⚠️ Ready to delete {input.entity} ID {input.id}. Use civicrm_delete_confirmed to proceed."
+    }
+    
+    return as_text_output(confirmation_msg)
+
+
+@app.tool()
+async def civicrm_delete_confirmed(input: DeleteInput, ctx: Context = None) -> CallToolResult:
+    """Execute confirmed deletion - ONLY use after user explicitly confirms"""
     payload = {"where": [["id", "=", input.id]]}
     async with CiviCRMClient() as cli:
         out = await cli.call(input.entity, "delete", payload)
